@@ -10,44 +10,83 @@ import Combine
 import TinyConstraints
 
 class ProductInfoViewController: UIViewController {
+    //UI properties
+    private lazy var loadingSpinner: UIActivityIndicatorView = {
+       let spinnerView = UIActivityIndicatorView()
+        spinnerView.startAnimating()
+        return spinnerView
+    }()
+    
+    private lazy var errorLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 22, weight: .semibold)
+        label.text = "Oops! Something went wrong 😔"
+        return label
+    }()
     
     private var cancellables: [AnyCancellable] = []
+    var productInfoViewModel: ProductInfoViewModel?
     
-    //optionals
-    private var apiManager: APIManager<String>?
-    @Published private var image: UIImage?
-    var product: Product?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
+        configureView()
         setupPublishers()
-        guard let product else{return}
-        let apiManager = APIManager<String>(product.thumbnail)
+    }
+    
+    private func configureView(){
+        view.backgroundColor = .white
         Task{
-            do{
-                let data = try await apiManager.fetchData()
-                image = UIImage(data: data)
-            }catch let error{
-                print(error)
-            }
+            guard let productInfoViewModel else{return}
+            await productInfoViewModel.loadImage()
         }
-        self.apiManager = apiManager
-        
     }
     
     private func setupPublishers(){
-        $image
-            .dropFirst(1)
-            .sink { image in
-                let imageView = UIImageView(image: image)
-                imageView.contentMode = .scaleAspectFill
-                self.view.addSubview(imageView)
-                imageView.height(100)
-                imageView.width(100)
-                
-                imageView.centerInSuperview()
-            }.store(in: &cancellables)
+        guard let productInfoViewModel else{return}
+        productInfoViewModel.$imageState.sink { state in
+            DispatchQueue.main.async {
+                self.view.subviews.forEach{$0.removeFromSuperview()}
+                switch state{
+                case .loading:
+                    self.addSpinnerView()
+                case .finishedWithSuccess:
+                    guard let image = productInfoViewModel.getImage() else{return}
+                    self.addImageView(with: image)
+                case .finishedWithError:
+                    self.addErrorLabel()
+                case .none:
+                    break
+                }
+            }
+            
+        }.store(in: &cancellables)
     }
 
+}
+
+//MARK: - UI Helper Methods
+
+extension ProductInfoViewController{
+    //Add Spinner View
+    private func addSpinnerView(){
+        view.addSubview(loadingSpinner)
+        loadingSpinner.centerInSuperview()
+    }
+    //Add Image View
+    private func addImageView(with image: UIImage){
+        let imageView = UIImageView(image: image)
+        imageView.backgroundColor = .red
+        imageView.contentMode = .scaleAspectFill
+        self.view.addSubview(imageView)
+        imageView.centerInSuperview()
+        imageView.width(300)
+        imageView.height(200)
+    }
+    
+    //Add Error Label
+    private func addErrorLabel(){
+        view.addSubview(errorLabel)
+        errorLabel.centerInSuperview()
+    }
 }

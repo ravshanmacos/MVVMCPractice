@@ -51,10 +51,11 @@ extension ProductsListCoordinator{
 //MARK: - Coordinating
 extension ProductsListCoordinator{
     private func setupListeners(){
-        productViewModel.onDeinit = { product in
-            let vc = ProductInfoViewController(nibName: nil, bundle: nil)
-            vc.product = product
-            self.presenter.pushViewController(vc, animated: true)
+        productViewModel.onDeinit = {[self] product in
+            let child = ProductInfoCoordinator(presenter: presenter)
+            child.product = product
+            childCoordinators.append(child)
+            child.start()
         }
     }
 }

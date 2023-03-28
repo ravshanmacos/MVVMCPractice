@@ -9,23 +9,40 @@ import UIKit
 
 class ProductInfoViewModel: ObservableObject{
     private let apiManager: APIManager<String>
+    private var image: UIImage?
     var product: Product?
+    @Published var imageState: ImageState?
     
     init() {
         self.apiManager = APIManager()
     }
     
-    func getImage()async -> UIImage?{
-        var image: UIImage?
-        guard let product else{return image}
+    func loadImage()async{
+        guard let product else{
+            imageState = .finishedWithError;
+            return
+        }
         let imageURL = product.thumbnail
+        imageState = .loading
         do{
             let data = try await apiManager.fetchData(imageURL)
-            let image = UIImage(data: data)
-            return image
+            image = UIImage(data: data)
+            imageState = .finishedWithSuccess
         }catch let error{
             print(error)
+            imageState = .finishedWithError
         }
+    }
+    
+    func getImage()-> UIImage?{
         return image
+    }
+}
+
+extension ProductInfoViewModel{
+    enum ImageState{
+        case loading
+        case finishedWithSuccess
+        case finishedWithError
     }
 }

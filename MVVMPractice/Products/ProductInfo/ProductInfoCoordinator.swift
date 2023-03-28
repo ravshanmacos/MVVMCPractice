@@ -9,16 +9,22 @@ import UIKit
 
 class ProductInfoCoordinator: Coordinator{
     
-    var childCoordinators: [Coordinator]
-    var presenter: UINavigationController
     private let viewModel: ProductInfoViewModel
+    var childCoordinators: [Coordinator] = []
+    var presenter: UINavigationController
+    var product: Product?
+    
     
     init(presenter: UINavigationController) {
         self.presenter = presenter
-        viewModel = ProductInfoViewModel()
+        self.viewModel = ProductInfoViewModel()
+       
     }
     
     func start() {
-        <#code#>
+        self.viewModel.product = product
+        let vc = ProductInfoViewController(nibName: nil, bundle: nil)
+        vc.productInfoViewModel = viewModel
+        presenter.pushViewController(vc, animated: true)
     }
 }
